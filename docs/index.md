@@ -28,6 +28,7 @@ each covers and where to find it.
 | File | Description |
 |---|---|
 | [`architecture.md`](architecture.md) | Detailed version of the README's repository structure: directory ownership, toolchains, and end-to-end data flow |
+| [`refactor-backlog.md`](refactor-backlog.md) | Dependency-ordered reading order for the refactor and hardening backlog (issues #455–#579): what blocks what, and the recurring defect patterns behind it |
 
 ## Architecture decision records (`docs/adr/`)
 

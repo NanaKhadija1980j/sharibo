@@ -1,6 +1,4 @@
 # secrets
-.env
-.env.*
 !.env.example
 *.pem
 
@@ -44,3 +42,4 @@ packages/client/reports/
 .agents/
 issue.md
 skills-lock.json
+config.bat
