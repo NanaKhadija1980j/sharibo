@@ -1,0 +1,30 @@
+{
+  "default_branch": "main",
+  "branches": [
+    "claude/project-analysis-issues-cjx7rv",
+    "fix/508-extract-the-twelve-inline-components-from-app-tsx-into-app-src-components",
+    "fix/510-remove-the-unused-buffer-polyfill-and-the-global-globalthis-define-from-the-app",
+    "fix/511-e2e-ts-still-shells-out-to-curl-the-test-asserting-it-does-not-is-red",
+    "fix/512-the-scripts-unit-suite-reaches-the-live-internet-and-cannot-run-offline",
+    "main",
+    "origin"
+  ],
+  "parent": {
+    "claude/project-analysis-issues-cjx7rv": "main",
+    "fix/508-extract-the-twelve-inline-components-from-app-tsx-into-app-src-components": "main",
+    "fix/510-remove-the-unused-buffer-polyfill-and-the-global-globalthis-define-from-the-app": "main",
+    "fix/511-e2e-ts-still-shells-out-to-curl-the-test-asserting-it-does-not-is-red": "main",
+    "fix/512-the-scripts-unit-suite-reaches-the-live-internet-and-cannot-run-offline": "main",
+    "main": null,
+    "origin": "main"
+  },
+  "order": [
+    "main",
+    "claude/project-analysis-issues-cjx7rv",
+    "fix/508-extract-the-twelve-inline-components-from-app-tsx-into-app-src-components",
+    "fix/510-remove-the-unused-buffer-polyfill-and-the-global-globalthis-define-from-the-app",
+    "fix/511-e2e-ts-still-shells-out-to-curl-the-test-asserting-it-does-not-is-red",
+    "fix/512-the-scripts-unit-suite-reaches-the-live-internet-and-cannot-run-offline",
+    "origin"
+  ]
+}
