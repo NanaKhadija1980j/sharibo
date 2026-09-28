@@ -1,3 +1,9 @@
+// Debounces announcements for the persistent live region in
+// components/LiveRegion.tsx.
+//
+// This module used to also export its own `LiveRegion`, which duplicated the
+// one App.tsx rendered. There is now a single definition, alongside the other
+// components, so the two cannot drift apart.
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export function usePoliteLiveRegion(debounceMs = 100) {
@@ -31,27 +37,4 @@ export function usePoliteLiveRegion(debounceMs = 100) {
   }, [debounceMs]);
 
   return { announce, message };
-}
-
-export function LiveRegion({ message }: { message: string }) {
-  return (
-    <div
-      role="status"
-      aria-live="polite"
-      aria-atomic="true"
-      style={{
-        position: "absolute",
-        width: "1px",
-        height: "1px",
-        padding: 0,
-        margin: "-1px",
-        overflow: "hidden",
-        clip: "rect(0,0,0,0)",
-        whiteSpace: "nowrap",
-        border: 0,
-      }}
-    >
-      {message}
-    </div>
-  );
 }
