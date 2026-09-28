@@ -2,6 +2,11 @@ import { explorerContract } from "../lib/explorer.js";
 import styles from "./Landing.module.css";
 import { useI18n } from "../i18n.js";
 
+// `NAMES` is duplicated from App.tsx. It is presentation data rather than a
+// component, so it is not a "defined twice" collision, but it should end up in
+// one place when #223 adopts this component. (Its `NetworkBanner`, which was
+// also defined here and also duplicated, has been deleted — nothing imported
+// it, and components/NetworkBanner.tsx is the version the app renders.)
 const NAMES = [
   "ajo",
   "esusu",
@@ -16,27 +21,6 @@ const NAMES = [
   "paluwagan",
   "chit fund",
 ];
-
-interface NetworkBannerProps {
-  networkPassphrase: string;
-}
-
-export function NetworkBanner({ networkPassphrase }: NetworkBannerProps) {
-  const isTestnet = networkPassphrase.toLowerCase().includes("test");
-  if (!isTestnet) return null;
-  return (
-    <div className="network-banner">
-      Stellar testnet — no real funds ·{" "}
-      <a
-        href="https://github.com/crackedstudio/sharibo#honest-limitations"
-        target="_blank"
-        rel="noreferrer"
-      >
-        limitations ↗
-      </a>
-    </div>
-  );
-}
 
 export function Landing({
   busy,
