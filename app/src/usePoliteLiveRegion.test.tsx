@@ -1,6 +1,7 @@
 import { act, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { LiveRegion, usePoliteLiveRegion } from "./usePoliteLiveRegion";
+import { usePoliteLiveRegion } from "./usePoliteLiveRegion";
+import { LiveRegion } from "./components/LiveRegion";
 
 function Harness() {
   const { announce, message } = usePoliteLiveRegion(50);
