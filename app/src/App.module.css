@@ -1,3 +1,11 @@
+/* Styles for App.tsx and the components it renders directly.
+ *
+ * The leaf components extracted from App.tsx (#508) each own a .module.css
+ * alongside their component — see TestnetBanner, NetworkBanner, CopyButton,
+ * ClaimProgress, ClaimExplainer, Stepper, MemberRing, EnvSetupScreen. Only the
+ * rules App.tsx still reaches for belong here.
+ */
+
 .hero {
   text-align: center;
 }
@@ -61,42 +69,6 @@
 .tagline {
   font-size: 18px;
   font-weight: 700;
-}
-
-.network-banner {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 12px;
-  text-align: center;
-  padding: 6px 12px;
-  background: #f0f0f0;
-  border: 2px solid #ccc;
-  color: #555;
-  margin-bottom: 16px;
-  width: 100%;
-  max-width: 620px;
-}
-
-.banner-link {
-  font-family: "JetBrains Mono", monospace;
-  font-size: 12px;
-  color: #666;
-  text-decoration: underline;
-}
-
-.testnet-banner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 6px 12px;
-  margin-bottom: 12px;
-  font-size: 12px;
-  font-family: "JetBrains Mono", monospace;
-  color: #666;
-  background: #f5f5f5;
-  border: 2px solid #ddd;
-  width: 100%;
-  max-width: 620px;
 }
 
 .btn {
@@ -179,48 +151,8 @@
   margin-top: 6px;
 }
 
-.stepper {
-  display: flex;
-  gap: 4px;
-  margin: 18px 0;
-  font-family: "JetBrains Mono", monospace;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-.step {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  border: 2px solid #ccc;
-  color: #737373;
-  background: #fafafa;
-}
-.step.active {
-  border-color: var(--ink);
-  background: var(--accent);
-  color: var(--ink);
-}
-.step.done {
-  border-color: var(--ink);
-  background: var(--accent2);
-  color: var(--ink);
-}
-.step-dot {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  border: 2px solid currentColor;
-  border-radius: 50%;
-  font-size: 10px;
-  flex-shrink: 0;
-}
-
+/* Still used by App.tsx directly (the "proving locally in your browser"
+   line under the claim button). ClaimProgress has its own copy. */
 .techline {
   font-family: "JetBrains Mono", monospace;
   font-size: 11px;
@@ -229,78 +161,6 @@
   display: flex;
   align-items: center;
   gap: 6px;
-}
-
-.claim-progress {
-  margin-top: 10px;
-}
-.claim-progress .stepper {
-  margin: 8px 0;
-}
-.claim-progress .step {
-  font-size: 10px;
-  text-transform: none;
-  letter-spacing: 0;
-}
-
-.spinner {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  flex-shrink: 0;
-  border: 2px solid #ccc;
-  border-top-color: var(--ink);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-}
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.claim-explainer {
-  margin-top: 12px;
-  border: 2px dashed var(--ink);
-  background: #fffdf5;
-}
-
-.claim-explainer summary {
-  cursor: pointer;
-  font-family: "JetBrains Mono", monospace;
-  font-size: 13px;
-  font-weight: 700;
-  padding: 10px 12px;
-}
-
-.claim-explainer summary:focus-visible {
-  outline: 3px solid var(--ink);
-  outline-offset: 2px;
-}
-
-.claim-explainer-body {
-  border-top: 2px solid var(--ink);
-  padding: 12px;
-  font-size: 14px;
-  line-height: 1.45;
-}
-
-.claim-explainer-body section + section {
-  margin-top: 10px;
-}
-
-.claim-explainer-body h3 {
-  margin: 0 0 4px 0;
-  font-size: 14px;
-}
-
-.claim-explainer-body p {
-  margin: 0;
-}
-
-.claim-explainer-body ol {
-  margin: 0;
-  padding-left: 18px;
 }
 
 .members {
@@ -325,23 +185,6 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-}
-
-.copy-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  border: 2px solid var(--ink);
-  background: white;
-  font-size: 11px;
-  line-height: 1;
-  cursor: pointer;
-}
-.copy-btn:hover {
-  background: var(--accent);
 }
 
 .radio {
@@ -410,19 +253,6 @@
     gap: 12px;
   }
 
-  .stepper {
-    font-size: 9px;
-    gap: 2px;
-  }
-  .step {
-    padding: 8px 4px;
-    min-height: var(--touch-min);
-    justify-content: center;
-  }
-  .step-dot {
-    display: none;
-  }
-
   .member {
     flex-direction: column;
     align-items: stretch;
@@ -462,11 +292,6 @@
     flex-shrink: 0;
   }
 
-  .ring-caption {
-    font-size: 12px;
-    padding: 8px;
-  }
-
   .namewall-item {
     font-size: 11px;
     padding: 3px 8px;
@@ -492,16 +317,6 @@
   .techline {
     font-size: 10px;
   }
-
-  .claim-explainer summary {
-    font-size: 12px;
-    padding: 8px 10px;
-  }
-
-  .claim-explainer-body {
-    padding: 10px;
-    font-size: 13px;
-  }
 }
 
 @media (max-width: 374px) {
@@ -519,23 +334,11 @@
   .card {
     padding: 16px 12px;
   }
-
-  .stepper {
-    flex-wrap: wrap;
-  }
-  .step {
-    flex: 1 1 calc(50% - 2px);
-    font-size: 8px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .btn,
-  .pot-bar,
-  .ring-node {
+  .pot-bar {
     transition: none !important;
-  }
-  .spinner {
-    animation: none;
   }
 }

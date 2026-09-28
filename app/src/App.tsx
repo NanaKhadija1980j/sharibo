@@ -42,11 +42,10 @@ import {
   RpcError,
   ProvingError,
   InvalidInputError,
-  describeError,
   networkOf,
 } from "@sharibo/client";
 import { config, configError } from "./config";
-import { useI18n } from "./i18n";
+import { useI18n, LanguageSwitcher } from "./i18n";
 import { usePoliteLiveRegion } from "./usePoliteLiveRegion";
 import { ArtifactProgress } from "./components/ArtifactProgress.js";
 import { explorerTx, short, explorerAccount, explorerContract } from "./lib/explorer";
@@ -56,7 +55,6 @@ import { FundingListSkeleton } from "./components/FundingList";
 import {
   friendbotFund as fundWithFriendbot,
   FriendbotRetryableError,
-  FRIEND_BOT_RATE_LIMIT_MESSAGE,
 } from "./lib/friendbot";
 import styles from "./App.module.css";
 import { checkNetworkMatch } from "./lib/wallet.freighter";
@@ -64,22 +62,24 @@ import { Toaster } from "./components/Toaster";
 import { ConnectionStatus } from "./components/ConnectionStatus";
 import { useOnlineStatus } from "./hooks/useOnlineStatus";
 import { diagnose, type Failure } from "./state/circleMachine";
-import { copyDebugBundle, type BundleInput } from "./lib/debugBundle";
-
-const BIGINT_MARKER = 'BIGINT::';
-function replacer(key: string, value: unknown): unknown {
-  if (typeof value === 'bigint') {
-    return BIGINT_MARKER + value.toString();
-  }
-  return value;
-}
-
-function reviver(key: string, value: unknown): unknown {
-  if (typeof value === 'string' && value.startsWith(BIGINT_MARKER)) {
-    return BigInt(value.slice(BIGINT_MARKER.length));
-  }
-  return value;
-}
+import { toUiError, getErrorMessage } from "./lib/uiError";
+import { readSessionState, clearSessionState } from "./lib/session";
+// Leaf components extracted from this file into app/src/components/ (#508).
+// App.tsx is now the wiring only; everything it used to define inline above
+// `export default function App()` lives in a module with its own test.
+import {
+  ClaimExplainer,
+  ClaimProgress,
+  CLAIM_STAGE_LABELS,
+  CopyButton,
+  CopyDebugBundleButton,
+  EnvSetupScreen,
+  LiveRegion,
+  MemberRing,
+  NetworkBanner,
+  Stepper,
+  TestnetBanner,
+} from "./components";
 
 // `config` is null when config validation failed (see config.ts); the component
 // below gates on `configError.length > 0` and renders the setup screen, so these
@@ -93,42 +93,6 @@ const NETWORK = {
 const TOKEN = config?.testTokenContractId ?? "";
 const LEVELS = TREE_LEVELS;
 const CIRCLE_SIZE = 5;
-const README_URL = "https://github.com/crackedstudio/sharibo#honest-limitations";
-
-const isTestnet = networkOf(NETWORK.networkPassphrase) === "testnet";
-const BANNER_TEXT = isTestnet ? "Stellar testnet — no real funds" : "";
-
-function TestnetBanner() {
-  const { t } = useI18n();
-  if (!isTestnet) return null;
-  return (
-    <div className={styles.testnetBanner}>
-      <span>{BANNER_TEXT}</span>
-      <a className={styles.bannerLink} href={README_URL} target="_blank" rel="noreferrer">
-        honest limitations ↗
-      </a>
-    </div>
-  );
-}
-
-function LanguageSwitcher({ className = "" }: { className?: string }) {
-  const { locale, locales, setLocale } = useI18n();
-  return (
-    <div className={`language-switcher ${className}`}>
-      <select
-        value={locale}
-        onChange={(e) => setLocale(e.target.value)}
-        aria-label="Language"
-      >
-        {locales.map((code) => (
-          <option key={code} value={code}>
-            {code}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
 
 const NAMES = [
   "ajo",
@@ -144,225 +108,6 @@ const NAMES = [
   "paluwagan",
   "chit fund",
 ];
-
-function toUiError(error: unknown, t: (key: string, vars?: Record<string, string | number>) => string): string {
-  if (error instanceof FriendbotRetryableError) {
-    return FRIEND_BOT_RATE_LIMIT_MESSAGE;
-  }
-
-  // Typed contract-error subclasses — no XDR string matching needed.
-  if (error instanceof AlreadyClaimedError) {
-    return "This proof has already been claimed in this circle. Try the next round.";
-  }
-  if (error instanceof InvalidProofError) {
-    return "The zero-knowledge proof is invalid. Please regenerate and try again.";
-  }
-  if (error instanceof RoundNotFundedError) {
-    return "The circle is not fully funded yet. All members must contribute first.";
-  }
-  if (error instanceof WrongRoundTagError) {
-    return "Proof is bound to a different round. Regenerate the proof for the current round.";
-  }
-  if (error instanceof CircleNotFoundError) {
-    return "Circle not found on-chain. It may have been cancelled or never created.";
-  }
-  if (error instanceof RoundFullError) {
-    return "This round is already fully funded. No more contributions are accepted.";
-  }
-  if (error instanceof OverflowError) {
-    return "Contribution amount or circle size caused an arithmetic overflow.";
-  }
-  if (error instanceof CircleCancelledError) {
-    return "This circle has been cancelled. Start a new one.";
-  }
-
-  if (error instanceof ContractError) {
-    return error.message;
-  }
-  if (error instanceof RpcError) {
-    return "Network error — please check your connection and retry.";
-  }
-  if (error instanceof ProvingError) {
-    return "Proof generation failed. Please try again.";
-  }
-  if (error instanceof InvalidInputError) {
-    return error.message;
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return t("error.generic");
-}
-
-// Same shape as toUiError, but additionally recognizes Sharibo contract
-// rejections — the raw `Error(Contract, #4)` Soroban surfaces gets rendered
-// as "AlreadyClaimed: this proof's nullifier was already used; ..." via
-// describeError() (packages/client/src/errors.ts) instead of the bare error
-// code. Falls back to the same Friendbot special-case and raw-message
-// behavior as toUiError for anything that isn't a recognized contract error.
-function getErrorMessage(error: unknown): string {
-  if (error instanceof FriendbotRetryableError) {
-    return FRIEND_BOT_RATE_LIMIT_MESSAGE;
-  }
-  return describeError(error);
-}
-
-
-// Every truncated value on screen (addresses, tx hashes) needs to be
-// pasteable in full somewhere else — a CLI call, an explorer search — so
-// this pairs with each `short(...)` display. Falls back to a prompt() (which
-// itself is trivially copyable) when the async Clipboard API isn't
-// available, e.g. non-secure contexts.
-function CopyButton({ value, label }: { value: string; label: string }) {
-  const { t } = useI18n();
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    if (!copied) return;
-    const tmr = setTimeout(() => setCopied(false), 1500);
-    return () => clearTimeout(tmr);
-  }, [copied]);
-
-  async function handleCopy() {
-    try {
-      if (!navigator.clipboard?.writeText) throw new Error("Clipboard API unavailable");
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
-    } catch {
-      window.prompt(`Clipboard unavailable — copy ${label} manually:`, value);
-    }
-  }
-
-  return (
-    <button
-      type="button"
-      className={styles.copyBtn}
-      onClick={handleCopy}
-      aria-label={t("copy.aria", { label })}
-      title={t("copy.title", { label })}
-    >
-      {copied ? "✓" : "📋"}
-    </button>
-  );
-}
-
-// Injected at build time by Vite; falls back to "dev" in local dev.
-const APP_VERSION: string =
-  (typeof import.meta.env.VITE_APP_VERSION === "string"
-    ? import.meta.env.VITE_APP_VERSION
-    : undefined) ?? "dev";
-
-const BUG_REPORT_URL =
-  "https://github.com/crackedstudio/sharibo/issues/new?template=bug_report.yml";
-
-/**
- * Collects the current circle-flow state into a DebugBundle and copies it as
- * formatted markdown to the clipboard. Placed in the footer of the circle
- * screen and next to any error message so a user can grab it whenever
- * something goes wrong.
- *
- * Secret keys are never included — see app/src/lib/debugBundle.ts for the
- * allow-list and the defence-in-depth regex backstop.
- */
-function CopyDebugBundleButton({
-  circleId,
-  round,
-  currentStep,
-  lastError,
-  fundedCount,
-  circleSize,
-  pot,
-  timings,
-}: {
-  circleId: bigint | null;
-  round: number;
-  currentStep: string | null;
-  lastError: string | null;
-  fundedCount: number;
-  circleSize: number;
-  pot: bigint;
-  timings: Record<string, number>;
-}) {
-  const [status, setStatus] = useState<"idle" | "copied" | "fallback" | "error">("idle");
-
-  useEffect(() => {
-    if (status === "idle") return;
-    const t = setTimeout(() => setStatus("idle"), 2500);
-    return () => clearTimeout(t);
-  }, [status]);
-
-  async function handleClick() {
-    const input: BundleInput = {
-      appVersion: APP_VERSION,
-      network: {
-        contractId: config.contractId,
-        rpcUrl: config.rpcUrl,
-        networkPassphrase: config.networkPassphrase,
-        tokenContractId: config.testTokenContractId,
-      },
-      circleId,
-      round,
-      currentStep,
-      lastError,
-      fundedCount,
-      circleSize,
-      pot,
-      // Artifact hashes are not tracked in the App's state yet; omit rather
-      // than leave undefined — the bundle accepts an empty record.
-      artifactHashes: {},
-      timings,
-      userAgent: navigator.userAgent,
-    };
-
-    const result = await copyDebugBundle(input);
-    if (result.ok) {
-      setStatus("copied");
-    } else if (result.markdown) {
-      // Clipboard API blocked but we have the markdown — show it via prompt().
-      window.prompt(
-        "Clipboard unavailable. Select all and copy manually, then paste into your bug report:",
-        result.markdown,
-      );
-      setStatus("fallback");
-    } else {
-      setStatus("error");
-    }
-  }
-
-  const label =
-    status === "copied"
-      ? "✓ Copied!"
-      : status === "fallback"
-        ? "Opened prompt"
-        : status === "error"
-          ? "Error — retry?"
-          : "📋 Copy debug bundle";
-
-  return (
-    <span className="debug-bundle-wrap">
-      <button
-        type="button"
-        className="btn btn-ghost btn-small"
-        onClick={handleClick}
-        title="Copy a redacted debug snapshot to your clipboard, ready to paste into a bug report. No secret keys are included."
-      >
-        {label}
-      </button>
-      {(status === "copied" || status === "fallback") && (
-        <a
-          className="link fineprint"
-          href={BUG_REPORT_URL}
-          target="_blank"
-          rel="noreferrer"
-        >
-          open bug report ↗
-        </a>
-      )}
-    </span>
-  );
-}
 
 interface Member {
   keypair: Keypair;
@@ -382,264 +127,7 @@ interface ClaimResult {
   verifyTimeMs: number;
 }
 
-// The visible stages of doClaim, in the order they actually occur. snarkjs's
-// fullProve is one opaque call, so "proving" covers witness computation +
-// proof generation together — it gets its own elapsed timer instead of a
-// substage breakdown, since we can't observe a finer boundary inside it.
-// Defined in ./types.ts so ClaimSection can share it without importing App.
 import type { ClaimStage } from "./types.js";
-
-const CLAIM_STAGE_LABELS: Record<ClaimStage, string> = {
-  artifacts: "Fetching proving artifacts (wasm + zkey)…",
-  proving: "Proving…",
-  verifying: "Verifying proof locally…",
-  funding: "Funding a fresh, unlinked recipient…",
-  submitting: "Submitting the claim…",
-};
-
-const CLAIM_STAGES: ClaimStage[] = ["artifacts", "proving", "verifying", "funding", "submitting"];
-
-// So a claim never reads as a hung tab: each real substage of doClaim gets
-// its own line here (fullProve itself stays one opaque "proving" step, per
-// snarkjs, but that step gets a live elapsed-seconds counter + spinner so a
-// slow prove still visibly ticks rather than sitting static).
-function ClaimProgress({ stage, elapsedSeconds }: { stage: ClaimStage; elapsedSeconds: number }) {
-  const { t } = useI18n();
-  const activeIndex = CLAIM_STAGES.indexOf(stage);
-  const stageLabels: Record<ClaimStage, string> = {
-    artifacts: t("claim.stage.artifacts"),
-    proving: t("claim.stage.proving"),
-    verifying: t("claim.stage.verifying"),
-    funding: t("claim.stage.funding"),
-    submitting: t("claim.stage.submitting"),
-  };
-  return (
-    <div className={styles.claimProgress}>
-      <div className={styles.stepper}>
-        {CLAIM_STAGES.map((s, i) => (
-          <div
-            key={s}
-            className={`${styles.step} ${i < activeIndex ? styles.done : i === activeIndex ? styles.active : ""}`}
-          >
-            <span className={styles.stepDot}>{i < activeIndex ? "✓" : i + 1}</span>
-            {CLAIM_STAGE_LABELS[s]}
-          </div>
-        ))}
-      </div>
-      {stage === "proving" && (
-        <p className={styles.techline}>
-          <span className={styles.spinner} aria-hidden="true" /> Groth16 · BLS12-381 · 3,757 constraints ·
-          proving locally in your browser, nothing sent anywhere until the proof is done ·{" "}
-          {elapsedSeconds}s elapsed
-        </p>
-      )}
-    </div>
-  );
-}
-
-function Stepper({ step }: { step: 0 | 1 | 2 | 3 }) {
-  const { t } = useI18n();
-  const labels = [t("step.create"), t("step.fund"), t("step.proveClaim"), t("step.unlinked")];
-  return (
-    // nav + ol give screen readers "step N of 4" list semantics without
-    // changing any visual output — CSS targets .stepper and .step as before.
-    <nav aria-label="Circle progress">
-      <ol className={styles.stepper} style={{ listStyle: "none", margin: 0, padding: 0 }}>
-        {labels.map((label, i) => {
-          const state = i < step ? "done" : i === step ? "active" : "";
-          return (
-            <li
-              key={label}
-              className={`${styles.step} ${state}`}
-              // aria-current="step" marks the single active step; completed
-              // and upcoming steps get no aria-current attribute at all.
-              {...(i === step ? { "aria-current": "step" as const } : {})}
-            >
-              {/* The dot (✓ / number) is decorative — the li text already
-                  conveys position, so hide the dot from the AT tree. */}
-              <span className={styles.stepDot} aria-hidden="true">
-                {i < step ? "✓" : i + 1}
-              </span>
-              {label}
-            </li>
-          );
-        })}
-      </ol>
-    </nav>
-  );
-}
-
-function NetworkBanner() {
-  const { t } = useI18n();
-  const isTestnet = networkOf(NETWORK.networkPassphrase) !== "mainnet";
-  if (!isTestnet) return null;
-  return (
-    <div className={styles.networkBanner}>
-      Stellar testnet — no real funds ·{" "}
-      <a
-        href="https://github.com/glorious21-coder/sharibo#honest-limitations"
-        target="_blank"
-        rel="noreferrer"
-      >
-        {t("banner.limitationsShort")}
-      </a>
-    </div>
-  );
-}
-
-// Purely presentational: after a claim, none of the 5 nodes are highlighted
-// as "the one that claimed" — that's the point. From outside the ring, all
-// five remain equally plausible; only the demo operator (via the radio
-// picker below) ever knows which one actually did.
-function useRingRadius(): number {
-  const [radius, setRadius] = useState(100);
-
-  useEffect(() => {
-    const read = () => {
-      const value = getComputedStyle(document.documentElement).getPropertyValue("--ring-radius");
-      setRadius(parseFloat(value) || 100);
-    };
-    read();
-    window.addEventListener("resize", read);
-    return () => window.removeEventListener("resize", read);
-  }, []);
-
-  return radius;
-}
-
-function MemberRing({ members, revealed }: { members: { funded: boolean; pending?: boolean }[]; revealed: boolean }) {
-  const { t } = useI18n();
-  const radius = useRingRadius();
-  const fundedCount = members.filter((m) => m.funded).length;
-
-  const ringLabel = revealed
-    ? t("ring.label.revealed", { count: members.length })
-    : t("ring.label.loading", { count: members.length, funded: fundedCount });
-
-  const captionId = "ring-caption";
-
-  return (
-    <div className={styles.ringWrap}>
-      <div
-        className={styles.ring}
-        role="img"
-        aria-label={ringLabel}
-        {...(revealed ? { "aria-describedby": captionId } : {})}
-      >
-        <div className={styles.ringCenter} aria-hidden="true">
-          {revealed ? "✓" : "pot"}
-        </div>
-        {members.map((m, i) => {
-          const angle = (i / members.length) * 2 * Math.PI - Math.PI / 2;
-          const x = Math.round(Math.cos(angle) * radius);
-          const y = Math.round(Math.sin(angle) * radius);
-          return (
-            <div
-              key={i}
-              aria-hidden="true"
-              className={`ring-node ${m.funded ? "funded" : ""} ${m.pending ? "pending" : ""}`}
-              style={{ transform: `translate(${x}px, ${y}px)` }}
-            >
-              {i + 1}
-            </div>
-          );
-        })}
-        {revealed && (
-          <div
-            aria-hidden="true"
-            className={`${styles.ringNode} ${styles.ringRecipient}`}
-            style={{ transform: "translate(0px, -170px)" }}
-          >
-            ?
-          </div>
-        )}
-      </div>
-      {revealed && (
-        <p id={captionId} role="note" className={styles.ringCaption}>
-          Payout landed on the address above — cryptographically, it could be tied to <em>any</em>{" "}
-          of the {members.length} members in the ring. An outside observer cannot tell which.
-        </p>
-      )}
-    </div>
-  );
-}
-
-function EnvSetupScreen({ errors }: { errors: string[] }) {
-  const { t } = useI18n();
-  return (
-    <div className={styles.page}>
-      <div className={`${styles.card} ${styles.hero}`}>
-        <LanguageSwitcher className={styles.languageSwitcherHero} />
-        <h1>SHARIBO</h1>
-        <h2 style={{ color: "var(--color-error, #e55)" }}>{t("env.setupRequired")}</h2>
-        <p className={styles.sub}>
-          {t("env.setupIntro")} {t("env.setupHowTo")}
-        </p>
-        <ul style={{ textAlign: "left", margin: "1rem 0", padding: "0 1.25rem" }}>
-          {errors.map((err) => (
-            <li key={err} style={{ marginBottom: "0.5rem" }}>
-              <code>{err}</code>
-            </li>
-          ))}
-        </ul>
-        <p className={styles.fineprint}>
-          {t("env.setupDetails")}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// ── Persistent live-region (must stay in DOM) ───────────────────────────────
-
-function LiveRegion({ message }: { message: string }) {
-  return (
-    <div
-      aria-live="polite"
-      aria-atomic="true"
-      className="sr-only"
-      style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0,0,0,0)" }}
-    >
-      {message}
-    </div>
-  );
-}
-
-// ── ClaimExplainer ──────────────────────────────────────────────────────────
-
-function ClaimExplainer() {
-  const { t } = useI18n();
-  return (
-    <details className={styles.claimExplainer}>
-      <summary>How this claim proof works</summary>
-      <div className={styles.claimExplainerBody}>
-        <section>
-          <h3>{t("explainer.sayingTitle")}</h3>
-          <p>
-            {t("explainer.sayingBody")}
-          </p>
-        </section>
-        <section>
-          <h3>{t("explainer.secretTitle")}</h3>
-          <p>{t("explainer.secretBody")}</p>
-        </section>
-        <section>
-          <h3>{t("explainer.checksTitle")}</h3>
-          <ol>
-            <li>{t("explainer.check1")}</li>
-            <li>{t("explainer.check2")}</li>
-            <li>{t("explainer.check3")}</li>
-            <li>{t("explainer.check4")}</li>
-          </ol>
-        </section>
-        <section>
-          <h3>{t("explainer.observersTitle")}</h3>
-          <p>{t("explainer.observersBody")}</p>
-        </section>
-      </div>
-    </details>
-  );
-}
 
 // ── Root component ───────────────────────────────────────────────────────────
 
@@ -693,17 +181,10 @@ export default function App() {
   const [resumePrompt, setResumePrompt] = useState<any>(null);
 
   useEffect(() => {
-    const saved = typeof sessionStorage !== "undefined" ? sessionStorage.getItem("sharibo_demo_state") : null;
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved, reviver);
-        if (parsed && parsed.circleId) {
-          setResumePrompt(parsed);
-        }
-      } catch {
-        sessionStorage.removeItem("sharibo_demo_state");
-      }
-    }
+    // Reads (and bigint-decodes) the persisted demo state; a corrupt entry is
+    // cleared for us. See lib/session.ts.
+    const saved = readSessionState();
+    if (saved) setResumePrompt(saved);
   }, []);
 
   const [prevCircle, setPrevCircle] = useState<{ id: string; explorerUrl: string } | null>(null);

@@ -1,4 +1,4 @@
-.ring-wrap {
+.ringWrap {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -13,7 +13,7 @@
   margin: var(--ring-margin-y) 0;
   flex-shrink: 0;
 }
-.ring-center {
+.ringCenter {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -30,7 +30,7 @@
   font-weight: 700;
   font-size: 13px;
 }
-.ring-node {
+.ringNode {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -49,15 +49,21 @@
     transform 0.4s ease,
     background 0.3s ease;
 }
-.ring-node.funded {
+.ringNode.funded {
   background: var(--accent2);
 }
-.ring-node.ring-recipient {
+/* Optimistic state while a contribution transaction is in flight. */
+.ringNode.pending {
+  opacity: 0.6;
+}
+/* The payout marker. Its position comes from an inline transform so it can use
+   the same --ring-recipient-offset token as the global stylesheet; the visual
+   treatment lives here. */
+.ringNode.ringRecipient {
   background: var(--accent);
   border-style: dashed;
-  transform: translate(0, var(--ring-recipient-offset));
 }
-.ring-caption {
+.ringCaption {
   max-width: 420px;
   width: 100%;
   text-align: center;
@@ -69,14 +75,14 @@
 }
 
 @media (max-width: 767px) {
-  .ring-caption {
+  .ringCaption {
     font-size: 12px;
     padding: 8px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ring-node {
+  .ringNode {
     transition: none !important;
   }
 }

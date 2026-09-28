@@ -1,0 +1,101 @@
+.claimProgress {
+  margin-top: 10px;
+}
+
+/* Self-contained on purpose. The global .stepper/.step/.step-dot rules in
+   style.css have no .active / .done variants, so relying on them would drop
+   the stage highlighting. These are scoped copies with the states included. */
+.stepper {
+  display: flex;
+  gap: 4px;
+  margin: 8px 0;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.step {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 2px solid #ccc;
+  color: #737373;
+  background: #fafafa;
+}
+.step.active {
+  border-color: var(--ink);
+  background: var(--accent);
+  color: var(--ink);
+}
+.step.done {
+  border-color: var(--ink);
+  background: var(--accent2);
+  color: var(--ink);
+}
+
+.stepDot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.techline {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  color: #555;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  border: 2px solid #ccc;
+  border-top-color: var(--ink);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 767px) {
+  .stepper {
+    gap: 2px;
+  }
+  .step {
+    padding: 8px 4px;
+    min-height: var(--touch-min);
+    justify-content: center;
+  }
+  .stepDot {
+    display: none;
+  }
+
+  .techline {
+    font-size: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}

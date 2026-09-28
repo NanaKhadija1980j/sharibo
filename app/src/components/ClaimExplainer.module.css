@@ -1,0 +1,55 @@
+.explainer {
+  margin-top: 12px;
+  border: 2px dashed var(--ink);
+  background: #fffdf5;
+}
+
+.explainer summary {
+  cursor: pointer;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 12px;
+}
+
+.explainer summary:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.body {
+  border-top: 2px solid var(--ink);
+  padding: 12px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.body section + section {
+  margin-top: 10px;
+}
+
+.body h3 {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+}
+
+.body p {
+  margin: 0;
+}
+
+.body ol {
+  margin: 0;
+  padding-left: 18px;
+}
+
+@media (max-width: 767px) {
+  .explainer summary {
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+
+  .body {
+    padding: 10px;
+    font-size: 13px;
+  }
+}

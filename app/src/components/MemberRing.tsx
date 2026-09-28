@@ -1,112 +1,89 @@
-import { useEffect, useState } from "react";
+import { useI18n } from "../i18n.js";
+import styles from "./MemberRing.module.css";
 
-// Reads --ring-radius from CSS custom properties so the ring scales with
-// responsive breakpoints without JS hard-coding.
-export function useRingRadius(): number {
-  const [radius, setRadius] = useState(100);
-
-  useEffect(() => {
-    const read = () => {
-      const value = getComputedStyle(document.documentElement).getPropertyValue("--ring-radius");
-      setRadius(parseFloat(value) || 100);
-    };
-    read();
-    window.addEventListener("resize", read);
-    return () => window.removeEventListener("resize", read);
-  }, []);
-
-  return radius;
+export interface RingMember {
+  funded: boolean;
+  /** Optimistic flag while a contribution transaction is in flight. */
+  pending?: boolean;
 }
 
-// Purely presentational: after a claim, none of the 5 nodes are highlighted
-// as "the one that claimed" — that's the point. From outside the ring, all
-// five remain equally plausible; only the demo operator (via the radio
-// picker below) ever knows which one actually did.
-import type { Member } from "../types.js";
-import { useI18n } from "../i18n.js";
-
+/**
+ * The ring of members, with the paid-out recipient shown as an unlabelled "?"
+ * once the claim lands.
+ *
+ * Purely presentational, and deliberately so: after a claim, none of the five
+ * nodes is highlighted as "the one that claimed" — that is the point. From
+ * outside the ring, all five remain equally plausible; only the demo operator
+ * (via the radio picker) ever knows which one actually did.
+ *
+ * This replaces an earlier SVG-with-viewBox implementation and the div
+ * implementation that was inlined in App.tsx. See #508.
+ *
+ * Node positions are computed from a CSS custom property rather than a
+ * `useRingRadius()` hook reading `getComputedStyle`: `calc()` resolves per
+ * frame, so the ring stays correct across responsive breakpoints with no
+ * resize listener, no initial-layout flash, and no duplicated fallback value
+ * in JS. The `100px` fallback only applies if `--ring-radius` is missing
+ * entirely.
+ */
 export function MemberRing({
   members,
   revealed,
 }: {
-  members: Member[];
+  members: RingMember[];
   revealed: boolean;
 }) {
   const { t } = useI18n();
-  const radius = 100;
-  const center = 170;
+  const fundedCount = members.filter((m) => m.funded).length;
+
+  const ringLabel = revealed
+    ? t("ring.label.revealed", { count: members.length })
+    : t("ring.label.loading", { count: members.length, funded: fundedCount });
+
+  const captionId = "ring-caption";
 
   return (
-    <div className="ring-wrap">
-      <svg
-        className="ring"
-        viewBox="0 0 340 340"
-        width="100%"
+    <div className={styles.ringWrap}>
+      <div
+        className={styles.ring}
         role="img"
-        aria-label="Member ring"
+        aria-label={ringLabel}
+        {...(revealed ? { "aria-describedby": captionId } : {})}
       >
-        <circle
-          cx={center}
-          cy={center}
-          r={radius}
-          fill="none"
-          className="ring-circle"
-        />
-
-        <text
-          x={center}
-          y={center}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          className="ring-center"
-        >
+        <div className={styles.ringCenter} aria-hidden="true">
           {revealed ? "✓" : "pot"}
-        </text>
-
+        </div>
         {members.map((m, i) => {
           const angle = (i / members.length) * 2 * Math.PI - Math.PI / 2;
-          const x = center + Math.cos(angle) * radius;
-          const y = center + Math.sin(angle) * radius;
-
+          const cos = Math.cos(angle).toFixed(6);
+          const sin = Math.sin(angle).toFixed(6);
           return (
-            <g
+            <div
               key={i}
-              className={`ring-node ${m.funded ? "funded" : ""} ${m.ineligible ? "ineligible" : ""}`}
-              aria-label={`member ${i + 1}${m.ineligible ? ", ineligible: already claimed" : ""}`}
+              aria-hidden="true"
+              className={`${styles.ringNode} ${m.funded ? styles.funded : ""} ${m.pending ? styles.pending : ""}`}
+              style={{
+                transform: `translate(calc(var(--ring-radius, 100px) * ${cos}), calc(var(--ring-radius, 100px) * ${sin}))`,
+              }}
             >
-              <circle cx={x} cy={y} r="20" />
-              <text
-                x={x}
-                y={y}
-                textAnchor="middle"
-                dominantBaseline="middle"
-              >
-                {m.ineligible ? "×" : i + 1}
-              </text>
-            </g>
+              {i + 1}
+            </div>
           );
         })}
-
         {revealed && (
-          <g className="ring-node ring-recipient">
-            <circle cx={center} cy="0" r="20" />
-            <text
-              x={center}
-              y="0"
-              textAnchor="middle"
-              dominantBaseline="middle"
-            >
-              ?
-            </text>
-          </g>
+          <div
+            aria-hidden="true"
+            className={`${styles.ringNode} ${styles.ringRecipient}`}
+            style={{ transform: "translate(0px, var(--ring-recipient-offset, -170px))" }}
+          >
+            ?
+          </div>
         )}
-      </svg>
-
+      </div>
       {revealed && (
-        <p className="ring-caption">
-          Payout landed on the address above — cryptographically, it could be
-          tied to <em>any</em> of the 5 members in the ring. An outside
-          observer cannot tell which.
+        <p id={captionId} role="note" className={styles.ringCaption}>
+          Payout landed on the address above — cryptographically, it could be tied to <em>any</em>{" "}
+          of the {members.length} members in the ring. An outside observer cannot tell which.
         </p>
       )}
     </div>

@@ -28,7 +28,7 @@
   background: var(--accent2);
   color: var(--ink);
 }
-.step-dot {
+.stepDot {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -50,7 +50,7 @@
     min-height: var(--touch-min);
     justify-content: center;
   }
-  .step-dot {
+  .stepDot {
     display: none;
   }
 }

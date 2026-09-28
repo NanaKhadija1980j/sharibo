@@ -1,0 +1,16 @@
+.copyBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 2px solid var(--ink);
+  background: white;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+.copyBtn:hover {
+  background: var(--accent);
+}
